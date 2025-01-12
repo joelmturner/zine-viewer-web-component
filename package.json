@@ -1,0 +1,20 @@
+{
+  "name": "copilot-crm-web-components",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/web-components.umd.js",
+  "module": "dist/web-components.es.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.0.7"
+  }
+}

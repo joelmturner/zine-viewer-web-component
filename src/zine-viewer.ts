@@ -1,76 +1,80 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement } from "lit/decorators.js";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
   static styles = css`
     :host {
+      --canvas-bg-color: transparent;
+      --page-width: 291px;
+      --page-height: 450px;
+      --page-border-radius: 15px;
+      --page-color: #111;
+      --page-bg-color: #fff;
+      --transition-duration: 1s;
     }
 
     * {
       box-sizing: border-box;
     }
     .container {
-      font-family: "Poppin", sans-serif;
-      background-color: #2e3537;
-      height: 100vh;
+      background-color: var(--canvas-bg-color);
       display: flex;
       align-items: center;
       justify-content: center;
       color: black;
     }
     .book {
-      width: 291px;
-      height: 450px;
+      width: var(--page-width);
+      height: var(--page-height);
       position: relative;
-      transition-duration: 1s;
+      transition-duration: var(--transition-duration);
       perspective: 1500;
     }
     input {
       display: none;
     }
-
     .page {
       position: absolute;
       background-color: white;
-      width: 291px;
-      height: 430px;
-      border-radius: 0 15px 15px 0;
-      margin-top: 10px;
+      width: var(--page-width);
+      height: var(--page-height);
+      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
       transform-origin: left;
       transform-style: preserve-3d;
       transform: rotateY(0deg);
-      transition-duration: 1.5s;
+      transition-duration: var(--transition-duration);
     }
     .page img {
       width: 100%;
       height: 100%;
-      border-radius: 15px 0 0 15px;
+      border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
     }
-    .front-page {
+    .front-page,
+    .back-page {
       position: absolute;
       width: 100%;
       height: 100%;
       backface-visibility: hidden;
-      box-sizing: border-box;
-      padding: 1rem;
+    }
+    .front-page img {
+      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
     }
     .back-page {
       transform: rotateY(180deg);
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
       z-index: 99;
     }
+
     .next,
     .prev {
       position: absolute;
-      bottom: 1em;
+      width: 5rem;
+      top: 0;
+      bottom: 0;
       cursor: pointer;
     }
     .next {
-      right: 1em;
+      right: 0;
     }
     .prev {
       left: 1em;
@@ -107,168 +111,37 @@ class ZineViewer extends LitElement {
   `;
 
   render() {
+    const pages = Array.from(this.children).map((child, index) => {
+      const imgSrc = child.getAttribute("img-src");
+      const backImgSrc = child.getAttribute("back-img-src");
+      return { imgSrc, backImgSrc, index };
+    });
+
+    // Set the total number of pages
+    // console.log("Total Pages:", pages.length);
+    // this.style.setProperty("--total-pages", pages.length.toString());
+
     return html`
       <div class="container">
-        <input type="checkbox" id="checkbox-page1" />
-        <input type="checkbox" id="checkbox-page2" />
-        <input type="checkbox" id="checkbox-page3" />
-        <input type="checkbox" id="checkbox-page4" />
+        ${pages.map(
+          (_, index) =>
+            html` <input type="checkbox" id="checkbox-page${index + 1}" />`
+        )}
         <div class="book">
-          <div class="page" id="page1">
-            <div class="front-page">
-              <img src="/src/assets/FRONT.jpg" alt="cover image" />
-              <label class="next" for="checkbox-page1"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-right"
-                >
-                  <path d="m9 18 6-6-6-6" /></svg
-              ></label>
-            </div>
-            <div class="back-page">
-              <img src="/src/assets/1.jpg" alt="cover image" />
-              <label class="prev" for="checkbox-page1"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-left"
-                >
-                  <path d="m15 18-6-6 6-6" /></svg
-              ></label>
-            </div>
-          </div>
-
-          <div class="page" id="page2">
-            <div class="front-page">
-              <img src="/src/assets/2.jpg" alt="cover image" />
-              <label class="next" for="checkbox-page2"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-right"
-                >
-                  <path d="m9 18 6-6-6-6" /></svg
-              ></label>
-            </div>
-            <div class="back-page">
-              <img src="/src/assets/3.jpg" alt="cover image" />
-              <label class="prev" for="checkbox-page2"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-left"
-                >
-                  <path d="m15 18-6-6 6-6" /></svg
-              ></label>
-            </div>
-          </div>
-
-          <div class="page" id="page3">
-            <div class="front-page">
-              <img src="/src/assets/4.jpg" alt="cover image" />
-              <label class="next" for="checkbox-page3"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-right"
-                >
-                  <path d="m9 18 6-6-6-6" /></svg
-              ></label>
-            </div>
-            <div class="back-page">
-              <img src="/src/assets/5.jpg" alt="cover image" />
-              <label class="prev" for="checkbox-page3"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-left"
-                >
-                  <path d="m15 18-6-6 6-6" /></svg
-              ></label>
-            </div>
-          </div>
-
-          <div class="page" id="page4">
-            <div class="front-page">
-              <img src="/src/assets/6.jpg" alt="cover image" />
-              <label class="next" for="checkbox-page4"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-right"
-                >
-                  <path d="m9 18 6-6-6-6" /></svg
-              ></label>
-            </div>
-            <div class="back-page">
-              <img src="/src/assets/BACK.jpg" alt="cover image" />
-              <label class="prev" for="checkbox-page4"
-                ><svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-chevron-left"
-                >
-                  <path d="m15 18-6-6 6-6" /></svg
-              ></label>
-            </div>
-          </div>
+          ${pages.map(
+            (page, index) => html`
+              <div class="page" id="page${index + 1}">
+                <div class="front-page">
+                  <img src="${page.imgSrc}" alt="cover image" />
+                  <label class="next" for="checkbox-page${index + 1}"> </label>
+                </div>
+                <div class="back-page">
+                  <img src="${page.backImgSrc}" alt="cover image" />
+                  <label class="prev" for="checkbox-page${index + 1}"> </label>
+                </div>
+              </div>
+            `
+          )}
         </div>
       </div>
     `;

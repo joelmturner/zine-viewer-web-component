@@ -10,105 +10,141 @@ class ZineViewer extends LitElement {
       --page-height: 450px;
       --page-border-radius: 15px;
       --page-color: #111;
-      --page-bg-color: #fff;
+      --page-bg-color: transparent;
       --transition-duration: 1s;
     }
 
     * {
       box-sizing: border-box;
     }
+
     .container {
-      background-color: var(--canvas-bg-color);
       display: flex;
+      justify-content: flex-end;
       align-items: center;
-      justify-content: center;
-      color: black;
+      width: 600px;
+      margin: 0;
+      background: var(--canvas-bg-color);
+      font-family: Arial, sans-serif;
     }
-    .book {
-      width: var(--page-width);
-      height: var(--page-height);
+
+    .zine {
       position: relative;
-      transition-duration: var(--transition-duration);
-      perspective: 1500;
+      width: calc(var(--page-width));
+      height: calc(var(--page-height));
+      perspective: 1500px;
     }
-    input {
-      display: none;
-    }
+
     .page {
       position: absolute;
-      background-color: white;
-      width: var(--page-width);
-      height: var(--page-height);
-      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
-      transform-origin: left;
-      transform-style: preserve-3d;
-      transform: rotateY(0deg);
-      transition-duration: var(--transition-duration);
-    }
-    .page img {
       width: 100%;
       height: 100%;
-      border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
+      transform-origin: left;
+      transform-style: preserve-3d;
+      transition: transform var(--transition-duration);
     }
-    .front-page,
-    .back-page {
+
+    .page.flipped {
+      transform: rotateY(-180deg);
+    }
+
+    .page > div {
       position: absolute;
       width: 100%;
       height: 100%;
       backface-visibility: hidden;
-    }
-    .front-page img {
-      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
-    }
-    .back-page {
-      transform: rotateY(180deg);
-      z-index: 99;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2em;
+      background: var(--page-bg-color);
+      border: 1px solid #ccc;
     }
 
-    .next,
-    .prev {
+    .front {
+      background-color: #fdf6e3;
+      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
+      overflow: hidden;
+    }
+
+    .back {
+      transform: rotateY(180deg);
+      background-color: #eee;
+      border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
+      overflow: hidden;
+    }
+
+    #next,
+    #prev {
       position: absolute;
-      width: 5rem;
+      width: 100%;
+      height: 100%;
       top: 0;
       bottom: 0;
-      cursor: pointer;
-    }
-    .next {
-      right: 0;
-    }
-    .prev {
-      left: 1em;
-    }
-    #page1 {
-      z-index: 4;
-    }
-    #page2 {
-      z-index: 3;
-    }
-    #page3 {
-      z-index: 2;
-    }
-    #page4 {
-      z-index: 1;
     }
 
-    #checkbox-page1:checked ~ .book #page1 {
-      transform: rotateY(-180deg);
-      z-index: 1;
+    #prev {
+      left: -100%;
     }
-    #checkbox-page2:checked ~ .book #page2 {
-      transform: rotateY(-180deg);
-      z-index: 2;
+
+    #next {
+      right: 0;
     }
-    #checkbox-page3:checked ~ .book #page3 {
-      transform: rotateY(-180deg);
-      z-index: 3;
+
+    button {
+      padding: 10px 20px;
+      margin: 0 10px;
+      border: none;
+      background-color: transparent;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 10;
     }
-    #checkbox-page4:checked ~ .book #page4 {
-      transform: rotateY(-180deg);
-      z-index: 4;
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
   `;
+
+  currentPage = 0;
+
+  firstUpdated() {
+    const pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
+    const prevButton = this.shadowRoot?.getElementById("prev");
+    const nextButton = this.shadowRoot?.getElementById("next");
+
+    const updateButtons = () => {
+      (prevButton as HTMLButtonElement).disabled = this.currentPage === 0;
+      (nextButton as HTMLButtonElement).disabled =
+        this.currentPage === pages.length;
+    };
+
+    const flipPage = (forward: boolean) => {
+      if (forward) {
+        pages[this.currentPage].classList.add("flipped");
+        (pages[this.currentPage] as HTMLElement).style.zIndex =
+          this.currentPage + 6 + "";
+        this.currentPage++;
+      } else {
+        this.currentPage--;
+        pages[this.currentPage].classList.remove("flipped");
+        (pages[this.currentPage] as HTMLElement).style.zIndex =
+          5 - this.currentPage + "";
+      }
+      updateButtons();
+    };
+
+    prevButton!.addEventListener("click", () => flipPage(false));
+    nextButton!.addEventListener("click", () => flipPage(true));
+
+    updateButtons(); // Initial button state update
+  }
 
   render() {
     const pages = Array.from(this.children).map((child, index) => {
@@ -117,31 +153,21 @@ class ZineViewer extends LitElement {
       return { imgSrc, backImgSrc, index };
     });
 
-    // Set the total number of pages
-    // console.log("Total Pages:", pages.length);
-    // this.style.setProperty("--total-pages", pages.length.toString());
-
     return html`
       <div class="container">
-        ${pages.map(
-          (_, index) =>
-            html` <input type="checkbox" id="checkbox-page${index + 1}" />`
-        )}
-        <div class="book">
+        <div class="zine">
           ${pages.map(
-            (page, index) => html`
-              <div class="page" id="page${index + 1}">
-                <div class="front-page">
-                  <img src="${page.imgSrc}" alt="cover image" />
-                  <label class="next" for="checkbox-page${index + 1}"> </label>
-                </div>
-                <div class="back-page">
-                  <img src="${page.backImgSrc}" alt="cover image" />
-                  <label class="prev" for="checkbox-page${index + 1}"> </label>
-                </div>
-              </div>
-            `
+            page => html`<div
+              class="page"
+              data-page="${page.index + 1}"
+              style="z-index: ${5 - page.index}"
+            >
+              <div class="front"><img src="${page.imgSrc}" /></div>
+              <div class="back"><img src="${page.backImgSrc}" /></div>
+            </div>`
           )}
+          <button id="prev"></button>
+          <button id="next"></button>
         </div>
       </div>
     `;

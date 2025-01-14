@@ -5,9 +5,10 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, "src/zine-viewer.ts"),
-      name: "NavBar",
+      name: "ZineViewer",
       fileName: format => `zine-viewer.${format}.js`,
-      formats: ["es", "umd"],
+      formats: ["es"],
+      sourcemap: true,
     },
     rollupOptions: {
       external: ["lit"],

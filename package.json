@@ -1,21 +1,24 @@
 {
   "name": "@joelmturner/zine-viewer-web-component",
   "private": false,
-  "version": "0.0.3",
+  "version": "0.0.5",
   "type": "module",
-  "main": "dist/zine-viewer.umd.js",
+  "main": "dist/zine-viewer.es.js",
   "module": "dist/zine-viewer.es.js",
+  "unpkg": "dist/zine-viewer.es.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "typecheck": "tsc",
     "prepare": "npm run build"
   },
-  "dependencies": {
+  "peerDependencies": {
     "lit": "^3.2.1"
   },
   "devDependencies": {
     "typescript": "~5.7.2",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "lit": "^3.2.1"
   },
   "description": "A web component for viewing zines or small books.",
   "repository": {
@@ -34,5 +37,6 @@
   "bugs": {
     "url": "https://github.com/joelmturner/zine-viewer-web-component/issues"
   },
-  "homepage": "https://github.com/joelmturner/zine-viewer-web-component#readme"
+  "homepage": "https://github.com/joelmturner/zine-viewer-web-component#readme",
+  "types": "dist/zine-viewer.d.ts"
 }

@@ -3,8 +3,8 @@
   "private": false,
   "version": "0.0.2",
   "type": "module",
-  "main": "dist/web-components.umd.js",
-  "module": "dist/web-components.es.js",
+  "main": "dist/zine-viewer.umd.js",
+  "module": "dist/zine-viewer.es.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

@@ -1,11 +1,14 @@
 {
   "name": "@joelmturner/zine-viewer-web-component",
   "private": false,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
-  "main": "dist/zine-viewer.es.js",
-  "module": "dist/zine-viewer.es.js",
-  "unpkg": "dist/zine-viewer.es.js",
+  "main": "./dist/zine-viewer.es.js",
+  "module": "./dist/zine-viewer.es.js",
+  "unpkg": "./dist/zine-viewer.es.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -38,5 +41,9 @@
     "url": "https://github.com/joelmturner/zine-viewer-web-component/issues"
   },
   "homepage": "https://github.com/joelmturner/zine-viewer-web-component#readme",
-  "types": "dist/zine-viewer.d.ts"
+  "exports": {
+    ".": {
+      "import": "./dist/zine-viewer.es.js"
+    }
+  }
 }

@@ -7,11 +7,13 @@ export default defineConfig({
       entry: resolve(__dirname, "src/zine-viewer.ts"),
       name: "ZineViewer",
       fileName: format => `zine-viewer.${format}.js`,
-      formats: ["umd", "es"],
+      formats: ["es"],
       sourcemap: true,
     },
     rollupOptions: {
-      external: /^lit/,
+      output: {
+        format: "es",
+      },
     },
   },
 });

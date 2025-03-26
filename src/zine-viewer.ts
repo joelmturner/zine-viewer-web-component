@@ -6,38 +6,53 @@ class ZineViewer extends LitElement {
   static styles = css`
     :host {
       --canvas-bg-color: transparent;
+      --canvas-padding: 25px;
       --page-width: 291px;
       --page-height: 450px;
       --page-border-radius: 15px;
       --page-color: #111;
       --page-bg-color: transparent;
       --transition-duration: 1s;
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    .wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--canvas-padding);
+    }
+
     .container {
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      width: 600px;
-      margin: 0;
+      width: calc(var(--page-width) * 2);
+      height: calc(100% - (var(--canvas-padding) * 2));
+      margin: 0 auto;
       background: var(--canvas-bg-color);
       font-family: Arial, sans-serif;
     }
 
     .zine {
       position: relative;
-      width: calc(var(--page-width));
-      height: calc(var(--page-height));
-      perspective: 1500px;
+      width: 100%;
+      height: 100%;
+      perspective: calc(var(--page-width) * 5);
     }
 
     .page {
       position: absolute;
-      width: 100%;
+      right: 0;
+      width: 50%;
       height: 100%;
       transform-origin: left;
       transform-style: preserve-3d;
@@ -58,33 +73,36 @@ class ZineViewer extends LitElement {
       align-items: center;
       font-size: 1.2em;
       background: var(--page-bg-color);
-      border: 1px solid #ccc;
     }
 
     .front {
       background-color: #fdf6e3;
-      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
       overflow: hidden;
+      & img {
+        border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
+      }
     }
 
     .back {
       transform: rotateY(180deg);
       background-color: #eee;
-      border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
       overflow: hidden;
+      & img {
+        border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
+      }
     }
 
     #next,
     #prev {
       position: absolute;
-      width: 100%;
+      width: 50%;
       height: 100%;
       top: 0;
       bottom: 0;
     }
 
     #prev {
-      left: -100%;
+      left: -25%;
     }
 
     #next {
@@ -109,6 +127,7 @@ class ZineViewer extends LitElement {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+      border: 1px solid #ccc;
     }
   `;
 
@@ -187,20 +206,22 @@ class ZineViewer extends LitElement {
     });
 
     return html`
-      <div class="container">
-        <div class="zine">
-          ${pages.map(
-            page => html`<div
-              class="page"
-              data-page="${page.index + 1}"
-              style="z-index: ${5 - page.index}"
-            >
-              <div class="front"><img src="${page.imgSrc}" /></div>
-              <div class="back"><img src="${page.backImgSrc}" /></div>
-            </div>`
-          )}
-          <button id="prev"></button>
-          <button id="next"></button>
+      <div class="wrapper">
+        <div class="container">
+          <div class="zine">
+            ${pages.map(
+              page => html`<div
+                class="page"
+                data-page="${page.index + 1}"
+                style="z-index: ${5 - page.index}"
+              >
+                <div class="front"><img src="${page.imgSrc}" /></div>
+                <div class="back"><img src="${page.backImgSrc}" /></div>
+              </div>`
+            )}
+            <button id="prev"></button>
+            <button id="next"></button>
+          </div>
         </div>
       </div>
     `;

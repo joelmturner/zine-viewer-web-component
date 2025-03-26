@@ -125,24 +125,57 @@ class ZineViewer extends LitElement {
         this.currentPage === pages.length;
     };
 
+    const updateZIndices = (isForward: boolean) => {
+      pages.forEach((page, index) => {
+        let zIndex;
+        if (isForward) {
+          if (index === 0 && this.currentPage <= 1) {
+            zIndex = pages.length + 1;
+          } else if (index < this.currentPage) {
+            // Pages that have been turned
+            zIndex = pages.length - (this.currentPage - index);
+          } else {
+            // Pages that haven't been turned yet
+            zIndex = pages.length - index;
+          }
+        } else {
+          // When paging backward, reverse the z-index order
+          if (
+            index === pages.length - 1 &&
+            this.currentPage >= pages.length - 1
+          ) {
+            zIndex = pages.length + 1;
+          } else if (index === this.currentPage) {
+            // Current page gets highest z-index
+            zIndex = pages.length;
+          } else if (index < this.currentPage) {
+            // Pages that have been unflipped get lower z-indices
+            zIndex = index;
+          } else {
+            // Unturned pages get z-indices in reverse order
+            zIndex = pages.length - index;
+          }
+        }
+        (page as HTMLElement).style.zIndex = zIndex.toString();
+      });
+    };
+
     const flipPage = (forward: boolean) => {
       if (forward) {
         pages[this.currentPage].classList.add("flipped");
-        (pages[this.currentPage] as HTMLElement).style.zIndex =
-          this.currentPage + 6 + "";
         this.currentPage++;
       } else {
         this.currentPage--;
         pages[this.currentPage].classList.remove("flipped");
-        (pages[this.currentPage] as HTMLElement).style.zIndex =
-          5 - this.currentPage + "";
       }
+      updateZIndices(forward);
       updateButtons();
     };
 
     prevButton!.addEventListener("click", () => flipPage(false));
     nextButton!.addEventListener("click", () => flipPage(true));
 
+    updateZIndices(true); // Initial z-index setup (assuming forward direction)
     updateButtons(); // Initial button state update
   }
 

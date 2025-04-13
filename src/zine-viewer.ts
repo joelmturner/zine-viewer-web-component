@@ -40,6 +40,7 @@ class ZineViewer extends LitElement {
       margin: 0 auto;
       background: var(--canvas-bg-color);
       font-family: Arial, sans-serif;
+      border-radius: var(--page-border-radius);
     }
 
     .zine {

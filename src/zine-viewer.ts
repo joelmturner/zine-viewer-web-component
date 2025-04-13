@@ -9,7 +9,8 @@ class ZineViewer extends LitElement {
       --canvas-padding: 25px;
       --page-width: 291px;
       --page-height: 450px;
-      --page-border-radius: 15px;
+      --spread-width: calc(var(--page-width) * 2);
+      --page-border-radius: 5%;
       --page-color: #111;
       --page-bg-color: transparent;
       --transition-duration: 1s;
@@ -35,8 +36,7 @@ class ZineViewer extends LitElement {
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      width: calc(var(--page-width) * 2);
-      height: calc(100% - (var(--canvas-padding) * 2));
+      position: relative;
       margin: 0 auto;
       background: var(--canvas-bg-color);
       font-family: Arial, sans-serif;
@@ -133,10 +133,48 @@ class ZineViewer extends LitElement {
 
   currentPage = 0;
 
+  private resizeContainer() {
+    const container = this.shadowRoot?.querySelector(
+      ".container"
+    ) as HTMLElement;
+    const wrapper = this.shadowRoot?.querySelector(".wrapper") as HTMLElement;
+    if (!container || !wrapper) return;
+
+    const padding = parseInt(
+      getComputedStyle(this).getPropertyValue("--canvas-padding")
+    );
+    const pageWidth = parseInt(
+      getComputedStyle(this).getPropertyValue("--page-width")
+    );
+    const pageHeight = parseInt(
+      getComputedStyle(this).getPropertyValue("--page-height")
+    );
+    const spreadWidth = pageWidth * 2;
+
+    const availableWidth = wrapper.clientWidth - padding * 2;
+    const availableHeight = wrapper.clientHeight - padding * 2;
+
+    const widthScale = availableWidth / spreadWidth;
+    const heightScale = availableHeight / pageHeight;
+    const scale = Math.min(widthScale, heightScale);
+
+    container.style.width = `${spreadWidth * scale}px`;
+    container.style.height = `${pageHeight * scale}px`;
+  }
+
   firstUpdated() {
     const pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
     const prevButton = this.shadowRoot?.getElementById("prev");
     const nextButton = this.shadowRoot?.getElementById("next");
+
+    // Initial size calculation
+    this.resizeContainer();
+
+    // Add resize observer to handle container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      this.resizeContainer();
+    });
+    resizeObserver.observe(this);
 
     const updateButtons = () => {
       (prevButton as HTMLButtonElement).disabled = this.currentPage === 0;

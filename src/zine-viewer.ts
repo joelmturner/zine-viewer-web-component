@@ -235,6 +235,39 @@ class ZineViewer extends LitElement {
     prevButton!.addEventListener("click", () => flipPage(false));
     nextButton!.addEventListener("click", () => flipPage(true));
 
+    // wait for all images to load, then update buttons
+    const images = Array.from(
+      this.shadowRoot?.querySelectorAll("img") || []
+    ) as HTMLImageElement[];
+    let loadedCount = 0;
+    const totalImages = images.length;
+
+    if (totalImages > 0) {
+      images.forEach(img => {
+        if (img.complete) {
+          loadedCount++;
+        } else {
+          img.addEventListener("load", () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              updateButtons();
+            }
+          });
+          img.addEventListener("error", () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              updateButtons();
+            }
+          });
+        }
+      });
+
+      // if all images are already loaded
+      if (loadedCount === totalImages) {
+        updateButtons();
+      }
+    }
+
     updateZIndices(true); // Initial z-index setup (assuming forward direction)
     updateButtons(); // Initial button state update
   }

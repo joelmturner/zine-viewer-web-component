@@ -135,6 +135,15 @@ class ZineViewer extends LitElement {
   `;
 
   currentPage = 0;
+  private prevButton: HTMLButtonElement | null = null;
+  private nextButton: HTMLButtonElement | null = null;
+  private pages: Element[] = [];
+
+  private updateButtons() {
+    if (!this.prevButton || !this.nextButton) return;
+    this.prevButton.disabled = this.currentPage === 0;
+    this.nextButton.disabled = this.currentPage === this.pages.length;
+  }
 
   private resizeContainer() {
     const container = this.shadowRoot?.querySelector(
@@ -166,9 +175,13 @@ class ZineViewer extends LitElement {
   }
 
   firstUpdated() {
-    const pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
-    const prevButton = this.shadowRoot?.getElementById("prev");
-    const nextButton = this.shadowRoot?.getElementById("next");
+    this.pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
+    this.prevButton = this.shadowRoot?.getElementById(
+      "prev"
+    ) as HTMLButtonElement;
+    this.nextButton = this.shadowRoot?.getElementById(
+      "next"
+    ) as HTMLButtonElement;
 
     // Initial size calculation
     this.resizeContainer();
@@ -179,41 +192,35 @@ class ZineViewer extends LitElement {
     });
     resizeObserver.observe(this);
 
-    const updateButtons = () => {
-      (prevButton as HTMLButtonElement).disabled = this.currentPage === 0;
-      (nextButton as HTMLButtonElement).disabled =
-        this.currentPage === pages.length;
-    };
-
     const updateZIndices = (isForward: boolean) => {
-      pages.forEach((page, index) => {
+      this.pages.forEach((page, index) => {
         let zIndex;
         if (isForward) {
           if (index === 0 && this.currentPage <= 1) {
-            zIndex = pages.length + 1;
+            zIndex = this.pages.length + 1;
           } else if (index < this.currentPage) {
             // Pages that have been turned
-            zIndex = pages.length - (this.currentPage - index);
+            zIndex = this.pages.length - (this.currentPage - index);
           } else {
             // Pages that haven't been turned yet
-            zIndex = pages.length - index;
+            zIndex = this.pages.length - index;
           }
         } else {
           // When paging backward, reverse the z-index order
           if (
-            index === pages.length - 1 &&
-            this.currentPage >= pages.length - 1
+            index === this.pages.length - 1 &&
+            this.currentPage >= this.pages.length - 1
           ) {
-            zIndex = pages.length + 1;
+            zIndex = this.pages.length + 1;
           } else if (index === this.currentPage) {
             // Current page gets highest z-index
-            zIndex = pages.length;
+            zIndex = this.pages.length;
           } else if (index < this.currentPage) {
             // Pages that have been unflipped get lower z-indices
             zIndex = index;
           } else {
             // Unturned pages get z-indices in reverse order
-            zIndex = pages.length - index;
+            zIndex = this.pages.length - index;
           }
         }
         (page as HTMLElement).style.zIndex = zIndex.toString();
@@ -222,18 +229,18 @@ class ZineViewer extends LitElement {
 
     const flipPage = (forward: boolean) => {
       if (forward) {
-        pages[this.currentPage].classList.add("flipped");
+        this.pages[this.currentPage].classList.add("flipped");
         this.currentPage++;
       } else {
         this.currentPage--;
-        pages[this.currentPage].classList.remove("flipped");
+        this.pages[this.currentPage].classList.remove("flipped");
       }
       updateZIndices(forward);
-      updateButtons();
+      this.updateButtons();
     };
 
-    prevButton!.addEventListener("click", () => flipPage(false));
-    nextButton!.addEventListener("click", () => flipPage(true));
+    this.prevButton?.addEventListener("click", () => flipPage(false));
+    this.nextButton?.addEventListener("click", () => flipPage(true));
 
     // wait for all images to load, then update buttons
     const images = Array.from(
@@ -250,13 +257,13 @@ class ZineViewer extends LitElement {
           img.addEventListener("load", () => {
             loadedCount++;
             if (loadedCount === totalImages) {
-              updateButtons();
+              this.updateButtons();
             }
           });
           img.addEventListener("error", () => {
             loadedCount++;
             if (loadedCount === totalImages) {
-              updateButtons();
+              this.updateButtons();
             }
           });
         }
@@ -264,12 +271,31 @@ class ZineViewer extends LitElement {
 
       // if all images are already loaded
       if (loadedCount === totalImages) {
-        updateButtons();
+        this.updateButtons();
       }
     }
 
     updateZIndices(true); // Initial z-index setup (assuming forward direction)
-    updateButtons(); // Initial button state update
+    this.updateButtons(); // Initial button state update
+  }
+
+  updated() {
+    // re-query elements if they're not set (in case of re-render)
+    if (!this.prevButton || !this.nextButton) {
+      this.prevButton = this.shadowRoot?.getElementById(
+        "prev"
+      ) as HTMLButtonElement;
+      this.nextButton = this.shadowRoot?.getElementById(
+        "next"
+      ) as HTMLButtonElement;
+    }
+    if (this.pages.length === 0) {
+      this.pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
+    }
+    // update buttons after any re-render
+    if (this.prevButton && this.nextButton && this.pages.length > 0) {
+      this.updateButtons();
+    }
   }
 
   render() {
@@ -327,8 +353,11 @@ class ZineViewer extends LitElement {
                 <div class="back"><img src="${page.backImgSrc}" /></div>
               </div>`
             )}
-            <button id="prev"></button>
-            <button id="next"></button>
+            <button id="prev" ?disabled=${this.currentPage === 0}></button>
+            <button
+              id="next"
+              ?disabled=${this.currentPage === pages.length}
+            ></button>
           </div>
         </div>
       </div>

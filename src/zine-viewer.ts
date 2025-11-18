@@ -1,8 +1,10 @@
 import { LitElement, html, css } from "lit";
-import { customElement } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
+  @property({ type: String, attribute: "pages" })
+  pagesAttr = "";
   static styles = css`
     :host {
       --canvas-bg-color: transparent;
@@ -238,11 +240,45 @@ class ZineViewer extends LitElement {
   }
 
   render() {
-    const pages = Array.from(this.children).map((child, index) => {
-      const imgSrc = child.getAttribute("img-src");
-      const backImgSrc = child.getAttribute("back-img-src");
-      return { imgSrc, backImgSrc, index };
-    });
+    let pages: Array<{
+      imgSrc: string | null;
+      backImgSrc: string | null;
+      index: number;
+    }>;
+
+    // check if pages attribute is provided (new array format)
+    if (this.pagesAttr) {
+      try {
+        const pagesData = JSON.parse(this.pagesAttr);
+        pages = pagesData.map(
+          (
+            page: { img: string; backImg: string } | [string, string],
+            index: number
+          ) => {
+            // support both object format {img, backImg} and array format [img, backImg]
+            if (Array.isArray(page)) {
+              return { imgSrc: page[0], backImgSrc: page[1], index };
+            } else {
+              return { imgSrc: page.img, backImgSrc: page.backImg, index };
+            }
+          }
+        );
+      } catch (e) {
+        // if JSON parsing fails, fall back to children
+        pages = Array.from(this.children).map((child, index) => {
+          const imgSrc = child.getAttribute("img-src");
+          const backImgSrc = child.getAttribute("back-img-src");
+          return { imgSrc, backImgSrc, index };
+        });
+      }
+    } else {
+      // fall back to reading from child elements (backward compatibility)
+      pages = Array.from(this.children).map((child, index) => {
+        const imgSrc = child.getAttribute("img-src");
+        const backImgSrc = child.getAttribute("back-img-src");
+        return { imgSrc, backImgSrc, index };
+      });
+    }
 
     return html`
       <div class="wrapper">

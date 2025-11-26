@@ -11,6 +11,13 @@ class ZineViewer extends LitElement {
 
   @property({ type: Boolean, attribute: "keyboard-navigation-focus-only" })
   keyboardNavigationFocusOnly = false;
+
+  @property({ type: Boolean, attribute: "autoplay" })
+  autoplay = false;
+
+  @property({ type: Number, attribute: "autoplay-interval" })
+  autoplayInterval = 2000;
+
   static styles = css`
     :host {
       --canvas-bg-color: transparent;
@@ -144,11 +151,102 @@ class ZineViewer extends LitElement {
   private nextButton: HTMLButtonElement | null = null;
   private pages: Element[] = [];
   private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
+  private autoplayIntervalId: number | null = null;
+  private isHovering = false;
 
   private updateButtons() {
     if (!this.prevButton || !this.nextButton) return;
     this.prevButton.disabled = this.currentPage === 0;
     this.nextButton.disabled = this.currentPage === this.pages.length;
+  }
+
+  private startAutoplay() {
+    this.stopAutoplay();
+    if (!this.autoplay || this.pages.length === 0 || this.isHovering) return;
+
+    this.autoplayIntervalId = window.setInterval(() => {
+      if (this.currentPage < this.pages.length) {
+        this.flipPageForwardInternal();
+      } else {
+        this.stopAutoplay();
+      }
+    }, this.autoplayInterval);
+  }
+
+  private stopAutoplay() {
+    if (this.autoplayIntervalId !== null) {
+      window.clearInterval(this.autoplayIntervalId);
+      this.autoplayIntervalId = null;
+    }
+  }
+
+  private updateZIndices(isForward: boolean) {
+    this.pages.forEach((page, index) => {
+      let zIndex;
+      if (isForward) {
+        if (index === 0 && this.currentPage <= 1) {
+          zIndex = this.pages.length + 1;
+        } else if (index < this.currentPage) {
+          // Pages that have been turned
+          zIndex = this.pages.length - (this.currentPage - index);
+        } else {
+          // Pages that haven't been turned yet
+          zIndex = this.pages.length - index;
+        }
+      } else {
+        // When paging backward, reverse the z-index order
+        if (
+          index === this.pages.length - 1 &&
+          this.currentPage >= this.pages.length - 1
+        ) {
+          zIndex = this.pages.length + 1;
+        } else if (index === this.currentPage) {
+          // Current page gets highest z-index
+          zIndex = this.pages.length;
+        } else if (index < this.currentPage) {
+          // Pages that have been unflipped get lower z-indices
+          zIndex = index;
+        } else {
+          // Unturned pages get z-indices in reverse order
+          zIndex = this.pages.length - index;
+        }
+      }
+      (page as HTMLElement).style.zIndex = zIndex.toString();
+    });
+  }
+
+  private flipPageForwardInternal() {
+    if (this.currentPage < this.pages.length) {
+      this.pages[this.currentPage].classList.add("flipped");
+      this.currentPage++;
+      this.updateZIndices(true);
+      this.updateButtons();
+    }
+  }
+
+  private flipPageForward() {
+    if (this.currentPage < this.pages.length) {
+      this.stopAutoplay(); // stop autoplay on manual navigation
+      this.flipPageForwardInternal();
+      // restart autoplay if it was enabled
+      if (this.autoplay) {
+        this.startAutoplay();
+      }
+    }
+  }
+
+  private flipPageBackward() {
+    if (this.currentPage > 0) {
+      this.stopAutoplay(); // stop autoplay on manual navigation
+      this.currentPage--;
+      this.pages[this.currentPage].classList.remove("flipped");
+      this.updateZIndices(false);
+      this.updateButtons();
+      // restart autoplay if it was enabled
+      if (this.autoplay) {
+        this.startAutoplay();
+      }
+    }
   }
 
   private resizeContainer() {
@@ -198,55 +296,8 @@ class ZineViewer extends LitElement {
     });
     resizeObserver.observe(this);
 
-    const updateZIndices = (isForward: boolean) => {
-      this.pages.forEach((page, index) => {
-        let zIndex;
-        if (isForward) {
-          if (index === 0 && this.currentPage <= 1) {
-            zIndex = this.pages.length + 1;
-          } else if (index < this.currentPage) {
-            // Pages that have been turned
-            zIndex = this.pages.length - (this.currentPage - index);
-          } else {
-            // Pages that haven't been turned yet
-            zIndex = this.pages.length - index;
-          }
-        } else {
-          // When paging backward, reverse the z-index order
-          if (
-            index === this.pages.length - 1 &&
-            this.currentPage >= this.pages.length - 1
-          ) {
-            zIndex = this.pages.length + 1;
-          } else if (index === this.currentPage) {
-            // Current page gets highest z-index
-            zIndex = this.pages.length;
-          } else if (index < this.currentPage) {
-            // Pages that have been unflipped get lower z-indices
-            zIndex = index;
-          } else {
-            // Unturned pages get z-indices in reverse order
-            zIndex = this.pages.length - index;
-          }
-        }
-        (page as HTMLElement).style.zIndex = zIndex.toString();
-      });
-    };
-
-    const flipPage = (forward: boolean) => {
-      if (forward) {
-        this.pages[this.currentPage].classList.add("flipped");
-        this.currentPage++;
-      } else {
-        this.currentPage--;
-        this.pages[this.currentPage].classList.remove("flipped");
-      }
-      updateZIndices(forward);
-      this.updateButtons();
-    };
-
-    this.prevButton?.addEventListener("click", () => flipPage(false));
-    this.nextButton?.addEventListener("click", () => flipPage(true));
+    this.prevButton?.addEventListener("click", () => this.flipPageBackward());
+    this.nextButton?.addEventListener("click", () => this.flipPageForward());
 
     // keyboard navigation handler
     this.keyboardHandler = (e: KeyboardEvent) => {
@@ -260,19 +311,30 @@ class ZineViewer extends LitElement {
       // only handle arrow keys
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        if (this.currentPage > 0) {
-          flipPage(false);
-        }
+        this.flipPageBackward();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        if (this.currentPage < this.pages.length) {
-          flipPage(true);
-        }
+        this.flipPageForward();
       }
     };
 
     // add keyboard event listener (handler checks keyboardNavigation property)
     window.addEventListener("keydown", this.keyboardHandler);
+
+    // add mouse hover handlers to pause/resume autoplay
+    const wrapper = this.shadowRoot?.querySelector(".wrapper") as HTMLElement;
+    if (wrapper) {
+      wrapper.addEventListener("mouseenter", () => {
+        this.isHovering = true;
+        this.stopAutoplay();
+      });
+      wrapper.addEventListener("mouseleave", () => {
+        this.isHovering = false;
+        if (this.autoplay) {
+          this.startAutoplay();
+        }
+      });
+    }
 
     // wait for all images to load, then update buttons
     const images = Array.from(
@@ -307,8 +369,13 @@ class ZineViewer extends LitElement {
       }
     }
 
-    updateZIndices(true); // Initial z-index setup (assuming forward direction)
+    this.updateZIndices(true); // Initial z-index setup (assuming forward direction)
     this.updateButtons(); // Initial button state update
+
+    // start autoplay if enabled
+    if (this.autoplay) {
+      this.startAutoplay();
+    }
   }
 
   updated(changedProperties: Map<string | number | symbol, unknown>) {
@@ -329,6 +396,18 @@ class ZineViewer extends LitElement {
       this.updateButtons();
     }
 
+    // handle autoplay property changes
+    if (
+      changedProperties.has("autoplay") ||
+      changedProperties.has("autoplayInterval")
+    ) {
+      if (this.autoplay) {
+        this.startAutoplay();
+      } else {
+        this.stopAutoplay();
+      }
+    }
+
     // keyboard navigation is handled by the handler checking the property
     // no need to add/remove listener when property changes
   }
@@ -339,6 +418,8 @@ class ZineViewer extends LitElement {
     if (this.keyboardHandler) {
       window.removeEventListener("keydown", this.keyboardHandler);
     }
+    // cleanup autoplay interval
+    this.stopAutoplay();
   }
 
   render() {

@@ -45,11 +45,17 @@
     <zine-viewer id="zine3" keyboard-navigation-focus-only></zine-viewer>
   </div>
 
+  <h2>Autoplay</h2>
+  <div style="width: 300px; height: 300px; outline: 1px solid orange;">
+    <zine-viewer id="zine4" autoplay autoplay-interval="5000"></zine-viewer>
+  </div>
+
   <script>
     // set pages attribute programmatically for better readability
     document.getElementById( "zine1" ).setAttribute( "pages", JSON.stringify( pages ) );
     document.getElementById( "zine2" ).setAttribute( "pages", JSON.stringify( pages ) );
     document.getElementById( "zine3" ).setAttribute( "pages", JSON.stringify( pages ) );
+    document.getElementById( "zine4" ).setAttribute( "pages", JSON.stringify( pages ) );
   </script>
 
 

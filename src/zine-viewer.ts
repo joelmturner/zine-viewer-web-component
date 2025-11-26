@@ -5,6 +5,12 @@ import { customElement, property } from "lit/decorators.js";
 class ZineViewer extends LitElement {
   @property({ type: String, attribute: "pages" })
   pagesAttr = "";
+
+  @property({ type: Boolean, attribute: "keyboard-navigation" })
+  keyboardNavigation = true;
+
+  @property({ type: Boolean, attribute: "keyboard-navigation-focus-only" })
+  keyboardNavigationFocusOnly = false;
   static styles = css`
     :host {
       --canvas-bg-color: transparent;
@@ -105,16 +111,15 @@ class ZineViewer extends LitElement {
     }
 
     #prev {
-      left: -25%;
+      left: 0;
+      right: 50%;
     }
 
     #next {
-      right: 0;
+      left: 50%;
     }
 
     button {
-      padding: 10px 20px;
-      margin: 0 10px;
       border: none;
       background-color: transparent;
       font-size: 16px;
@@ -138,6 +143,7 @@ class ZineViewer extends LitElement {
   private prevButton: HTMLButtonElement | null = null;
   private nextButton: HTMLButtonElement | null = null;
   private pages: Element[] = [];
+  private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   private updateButtons() {
     if (!this.prevButton || !this.nextButton) return;
@@ -242,6 +248,32 @@ class ZineViewer extends LitElement {
     this.prevButton?.addEventListener("click", () => flipPage(false));
     this.nextButton?.addEventListener("click", () => flipPage(true));
 
+    // keyboard navigation handler
+    this.keyboardHandler = (e: KeyboardEvent) => {
+      if (!this.keyboardNavigation) return;
+
+      // check if focus is required and component doesn't have focus
+      if (this.keyboardNavigationFocusOnly && !this.matches(":focus-within")) {
+        return;
+      }
+
+      // only handle arrow keys
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (this.currentPage > 0) {
+          flipPage(false);
+        }
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (this.currentPage < this.pages.length) {
+          flipPage(true);
+        }
+      }
+    };
+
+    // add keyboard event listener (handler checks keyboardNavigation property)
+    window.addEventListener("keydown", this.keyboardHandler);
+
     // wait for all images to load, then update buttons
     const images = Array.from(
       this.shadowRoot?.querySelectorAll("img") || []
@@ -279,7 +311,7 @@ class ZineViewer extends LitElement {
     this.updateButtons(); // Initial button state update
   }
 
-  updated() {
+  updated(changedProperties: Map<string | number | symbol, unknown>) {
     // re-query elements if they're not set (in case of re-render)
     if (!this.prevButton || !this.nextButton) {
       this.prevButton = this.shadowRoot?.getElementById(
@@ -295,6 +327,17 @@ class ZineViewer extends LitElement {
     // update buttons after any re-render
     if (this.prevButton && this.nextButton && this.pages.length > 0) {
       this.updateButtons();
+    }
+
+    // keyboard navigation is handled by the handler checking the property
+    // no need to add/remove listener when property changes
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // cleanup keyboard event listener
+    if (this.keyboardHandler) {
+      window.removeEventListener("keydown", this.keyboardHandler);
     }
   }
 
@@ -340,7 +383,10 @@ class ZineViewer extends LitElement {
     }
 
     return html`
-      <div class="wrapper">
+      <div
+        class="wrapper"
+        tabindex=${this.keyboardNavigationFocusOnly ? "0" : null}
+      >
         <div class="container">
           <div class="zine">
             ${pages.map(

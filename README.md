@@ -1,5 +1,9 @@
 # zine-web-component
 
+## Preview
+
+https://github.com/user-attachments/assets/b78a8912-df38-423c-aa78-4e412dadc595
+
 ## Local Development
 
 Run `pnpm dev` to start the local development server.

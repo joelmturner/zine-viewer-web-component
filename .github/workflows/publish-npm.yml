@@ -12,6 +12,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # pnpm publish shells out to npm; job-level token ensures npm sees auth everywhere
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +36,15 @@ jobs:
 
       - run: pnpm run build
 
+      # explicit project .npmrc so npm (invoked by pnpm publish) always sends the token
+      - name: Configure npm registry auth
+        run: |
+          echo '@joelmturner:registry=https://registry.npmjs.org/' >> .npmrc
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >> .npmrc
+          echo '//registry.npmjs.org/:always-auth=true' >> .npmrc
+
       - run: pnpm publish --access public --no-git-checks --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # scoped packages can stay "restricted" on npm until explicitly set public
+      - name: Ensure npm package visibility is public
+        run: npm access public @joelmturner/zine-viewer-web-component

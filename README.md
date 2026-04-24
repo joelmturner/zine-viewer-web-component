@@ -8,6 +8,14 @@ https://github.com/user-attachments/assets/b78a8912-df38-423c-aa78-4e412dadc595
 
 Run `pnpm dev` to start the local development server.
 
+## Publishing (maintainers)
+
+Publishing runs from GitHub Actions ([`.github/workflows/publish-npm.yml`](.github/workflows/publish-npm.yml)).
+
+1. Add an npm **Automation** or **Granular** token with publish access to this package as the repo secret `NPM_TOKEN` (GitHub repo → Settings → Secrets and variables → Actions).
+2. Bump `version` in `package.json`, commit, and push a matching git tag (for example `v0.1.2`).
+3. Create a **GitHub Release** from that tag and publish the release. The workflow publishes to npm when the release is published. You can also run the workflow manually via **Actions → Publish to npm → Run workflow**.
+
 ## Usage
 
 Use the `zine-web-component` element in your HTML.

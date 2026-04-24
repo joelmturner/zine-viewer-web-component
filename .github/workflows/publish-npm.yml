@@ -16,21 +16,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       # node 24 ships npm 11+, required for oidc trusted publishing with the registry
       # omit registry-url so setup-node does not write _authToken into .npmrc (that blocks oidc)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: pnpm
 
       - name: Install deps
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
 
       - name: Test
-        run: npm test
+        run: pnpm test
 
       # trusted publisher on npm must list this workflow file: publish-npm.yml (no NODE_AUTH_TOKEN)
       - name: Publish

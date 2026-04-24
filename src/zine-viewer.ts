@@ -1,5 +1,18 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
+import type { PropertyValues } from "lit";
+import {
+  loadZinePages,
+  createInitialSnapshot,
+  pageIsFlipped,
+  canFlipForward,
+  canFlipBackward,
+  flipForward,
+  flipBackward,
+  getZIndices,
+  type BookSnapshot,
+  type ZineStackDirection,
+} from "./zine-book";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
@@ -146,26 +159,30 @@ class ZineViewer extends LitElement {
     }
   `;
 
-  currentPage = 0;
+  @state()
+  private book: BookSnapshot = createInitialSnapshot(0);
+
+  @state()
+  private stackDirection: ZineStackDirection = "initial";
+
   private prevButton: HTMLButtonElement | null = null;
   private nextButton: HTMLButtonElement | null = null;
-  private pages: Element[] = [];
   private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
   private autoplayIntervalId: number | null = null;
   private isHovering = false;
 
   private updateButtons() {
     if (!this.prevButton || !this.nextButton) return;
-    this.prevButton.disabled = this.currentPage === 0;
-    this.nextButton.disabled = this.currentPage === this.pages.length;
+    this.prevButton.disabled = !canFlipBackward(this.book);
+    this.nextButton.disabled = !canFlipForward(this.book);
   }
 
   private startAutoplay() {
     this.stopAutoplay();
-    if (!this.autoplay || this.pages.length === 0 || this.isHovering) return;
+    if (!this.autoplay || this.book.pageCount === 0 || this.isHovering) return;
 
     this.autoplayIntervalId = window.setInterval(() => {
-      if (this.currentPage < this.pages.length) {
+      if (canFlipForward(this.book)) {
         this.flipPageForwardInternal();
       } else {
         this.stopAutoplay();
@@ -180,90 +197,51 @@ class ZineViewer extends LitElement {
     }
   }
 
-  private updateZIndices(isForward: boolean) {
-    this.pages.forEach((page, index) => {
-      let zIndex;
-      if (isForward) {
-        if (index === 0 && this.currentPage <= 1) {
-          zIndex = this.pages.length + 1;
-        } else if (index < this.currentPage) {
-          // Pages that have been turned
-          zIndex = this.pages.length - (this.currentPage - index);
-        } else {
-          // Pages that haven't been turned yet
-          zIndex = this.pages.length - index;
-        }
-      } else {
-        // When paging backward, reverse the z-index order
-        if (
-          index === this.pages.length - 1 &&
-          this.currentPage >= this.pages.length - 1
-        ) {
-          zIndex = this.pages.length + 1;
-        } else if (index === this.currentPage) {
-          // Current page gets highest z-index
-          zIndex = this.pages.length;
-        } else if (index < this.currentPage) {
-          // Pages that have been unflipped get lower z-indices
-          zIndex = index;
-        } else {
-          // Unturned pages get z-indices in reverse order
-          zIndex = this.pages.length - index;
-        }
-      }
-      (page as HTMLElement).style.zIndex = zIndex.toString();
-    });
-  }
-
   private flipPageForwardInternal() {
-    if (this.currentPage < this.pages.length) {
-      this.pages[this.currentPage].classList.add("flipped");
-      this.currentPage++;
-      this.updateZIndices(true);
-      this.updateButtons();
-    }
+    const next = flipForward(this.book);
+    if (!next) return;
+    this.book = next;
+    this.stackDirection = "forward";
+    this.updateButtons();
   }
 
   private flipPageForward() {
-    if (this.currentPage < this.pages.length) {
-      this.stopAutoplay(); // stop autoplay on manual navigation
-      this.flipPageForwardInternal();
-      // restart autoplay if it was enabled
-      if (this.autoplay) {
-        this.startAutoplay();
-      }
+    if (!canFlipForward(this.book)) return;
+    this.stopAutoplay(); // stop autoplay on manual navigation
+    this.flipPageForwardInternal();
+    if (this.autoplay) {
+      this.startAutoplay();
     }
   }
 
   private flipPageBackward() {
-    if (this.currentPage > 0) {
-      this.stopAutoplay(); // stop autoplay on manual navigation
-      this.currentPage--;
-      this.pages[this.currentPage].classList.remove("flipped");
-      this.updateZIndices(false);
-      this.updateButtons();
-      // restart autoplay if it was enabled
-      if (this.autoplay) {
-        this.startAutoplay();
-      }
+    if (!canFlipBackward(this.book)) return;
+    this.stopAutoplay(); // stop autoplay on manual navigation
+    const next = flipBackward(this.book);
+    if (!next) return;
+    this.book = next;
+    this.stackDirection = "backward";
+    this.updateButtons();
+    if (this.autoplay) {
+      this.startAutoplay();
     }
   }
 
   private resizeContainer() {
     const container = this.shadowRoot?.querySelector(
-      ".container"
+      ".container",
     ) as HTMLElement;
     const wrapper = this.shadowRoot?.querySelector(".wrapper") as HTMLElement;
     if (!container || !wrapper) return;
 
     const padding = parseInt(
-      getComputedStyle(this).getPropertyValue("--canvas-padding")
+      getComputedStyle(this).getPropertyValue("--canvas-padding"),
     );
     const pageWidth = parseInt(
-      getComputedStyle(this).getPropertyValue("--page-width")
+      getComputedStyle(this).getPropertyValue("--page-width"),
     );
     const pageHeight = parseInt(
-      getComputedStyle(this).getPropertyValue("--page-height")
+      getComputedStyle(this).getPropertyValue("--page-height"),
     );
     const spreadWidth = pageWidth * 2;
 
@@ -279,12 +257,11 @@ class ZineViewer extends LitElement {
   }
 
   firstUpdated() {
-    this.pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
     this.prevButton = this.shadowRoot?.getElementById(
-      "prev"
+      "prev",
     ) as HTMLButtonElement;
     this.nextButton = this.shadowRoot?.getElementById(
-      "next"
+      "next",
     ) as HTMLButtonElement;
 
     // Initial size calculation
@@ -338,7 +315,7 @@ class ZineViewer extends LitElement {
 
     // wait for all images to load, then update buttons
     const images = Array.from(
-      this.shadowRoot?.querySelectorAll("img") || []
+      this.shadowRoot?.querySelectorAll("img") || [],
     ) as HTMLImageElement[];
     let loadedCount = 0;
     const totalImages = images.length;
@@ -369,7 +346,6 @@ class ZineViewer extends LitElement {
       }
     }
 
-    this.updateZIndices(true); // Initial z-index setup (assuming forward direction)
     this.updateButtons(); // Initial button state update
 
     // start autoplay if enabled
@@ -378,21 +354,27 @@ class ZineViewer extends LitElement {
     }
   }
 
+  willUpdate(changedProperties: PropertyValues<this>) {
+    super.willUpdate(changedProperties);
+    const pages = loadZinePages(this.pagesAttr, this);
+    const n = pages.length;
+    if (changedProperties.has("pagesAttr") || n !== this.book.pageCount) {
+      this.book = createInitialSnapshot(n);
+      this.stackDirection = "initial";
+    }
+  }
+
   updated(changedProperties: Map<string | number | symbol, unknown>) {
     // re-query elements if they're not set (in case of re-render)
     if (!this.prevButton || !this.nextButton) {
       this.prevButton = this.shadowRoot?.getElementById(
-        "prev"
+        "prev",
       ) as HTMLButtonElement;
       this.nextButton = this.shadowRoot?.getElementById(
-        "next"
+        "next",
       ) as HTMLButtonElement;
     }
-    if (this.pages.length === 0) {
-      this.pages = Array.from(this.shadowRoot?.querySelectorAll(".page") || []);
-    }
-    // update buttons after any re-render
-    if (this.prevButton && this.nextButton && this.pages.length > 0) {
+    if (this.prevButton && this.nextButton && this.book.pageCount > 0) {
       this.updateButtons();
     }
 
@@ -423,45 +405,8 @@ class ZineViewer extends LitElement {
   }
 
   render() {
-    let pages: Array<{
-      imgSrc: string | null;
-      backImgSrc: string | null;
-      index: number;
-    }>;
-
-    // check if pages attribute is provided (new array format)
-    if (this.pagesAttr) {
-      try {
-        const pagesData = JSON.parse(this.pagesAttr);
-        pages = pagesData.map(
-          (
-            page: { img: string; backImg: string } | [string, string],
-            index: number
-          ) => {
-            // support both object format {img, backImg} and array format [img, backImg]
-            if (Array.isArray(page)) {
-              return { imgSrc: page[0], backImgSrc: page[1], index };
-            } else {
-              return { imgSrc: page.img, backImgSrc: page.backImg, index };
-            }
-          }
-        );
-      } catch (e) {
-        // if JSON parsing fails, fall back to children
-        pages = Array.from(this.children).map((child, index) => {
-          const imgSrc = child.getAttribute("img-src");
-          const backImgSrc = child.getAttribute("back-img-src");
-          return { imgSrc, backImgSrc, index };
-        });
-      }
-    } else {
-      // fall back to reading from child elements (backward compatibility)
-      pages = Array.from(this.children).map((child, index) => {
-        const imgSrc = child.getAttribute("img-src");
-        const backImgSrc = child.getAttribute("back-img-src");
-        return { imgSrc, backImgSrc, index };
-      });
-    }
+    const pages = loadZinePages(this.pagesAttr, this);
+    const z = getZIndices(this.book, this.stackDirection);
 
     return html`
       <div
@@ -471,20 +416,20 @@ class ZineViewer extends LitElement {
         <div class="container">
           <div class="zine">
             ${pages.map(
-              page => html`<div
-                class="page"
-                data-page="${page.index + 1}"
-                style="z-index: ${5 - page.index}"
-              >
-                <div class="front"><img src="${page.imgSrc}" /></div>
-                <div class="back"><img src="${page.backImgSrc}" /></div>
-              </div>`
+              page =>
+                html`<div
+                  class="page${pageIsFlipped(page.index, this.book)
+                    ? " flipped"
+                    : ""}"
+                  data-page="${page.index + 1}"
+                  style="z-index: ${z[page.index] ?? 0}"
+                >
+                  <div class="front"><img src="${page.imgSrc}" /></div>
+                  <div class="back"><img src="${page.backImgSrc}" /></div>
+                </div>`,
             )}
-            <button id="prev" ?disabled=${this.currentPage === 0}></button>
-            <button
-              id="next"
-              ?disabled=${this.currentPage === pages.length}
-            ></button>
+            <button id="prev" ?disabled=${!canFlipBackward(this.book)}></button>
+            <button id="next" ?disabled=${!canFlipForward(this.book)}></button>
           </div>
         </div>
       </div>

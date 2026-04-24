@@ -16,11 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # node 24 ships npm 11+, required for oidc trusted publishing with the registry
+      # omit registry-url so setup-node does not write _authToken into .npmrc (that blocks oidc)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "24"
 
       - name: Install deps
         run: npm ci
@@ -31,9 +32,6 @@ jobs:
       - name: Test
         run: npm test
 
+      # trusted publisher on npm must list this workflow file: publish-npm.yml (no NODE_AUTH_TOKEN)
       - name: Publish
         run: npm publish --provenance --access public
-        env:
-          # If you're using an npm automation token:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # If you're using trusted publishing, npm will use the OIDC token automatically.

@@ -1,7 +1,7 @@
 {
   "name": "@joelmturner/zine-viewer-web-component",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.5",
   "type": "module",
   "main": "./dist/zine-viewer.es.js",
   "module": "./dist/zine-viewer.es.js",

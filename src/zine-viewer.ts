@@ -13,6 +13,7 @@ import {
   type BookSnapshot,
   type ZineStackDirection,
 } from "./zine-book";
+import { lookupZinePresetDimensions } from "./zine-sizes";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
@@ -30,6 +31,10 @@ class ZineViewer extends LitElement {
 
   @property({ type: Number, attribute: "autoplay-interval" })
   autoplayInterval = 2000;
+
+  /** named aspect preset; empty = use :host --page-width / --page-height only */
+  @property({ type: String, attribute: "size" })
+  size = "";
 
   static styles = css`
     :host {
@@ -256,7 +261,19 @@ class ZineViewer extends LitElement {
     container.style.height = `${pageHeight * scale}px`;
   }
 
+  private syncSizePresetCss() {
+    const dims = lookupZinePresetDimensions(this.size);
+    if (dims === null) {
+      this.style.removeProperty("--page-width");
+      this.style.removeProperty("--page-height");
+    } else {
+      this.style.setProperty("--page-width", `${dims.pageWidth}px`);
+      this.style.setProperty("--page-height", `${dims.pageHeight}px`);
+    }
+  }
+
   firstUpdated() {
+    this.syncSizePresetCss();
     this.prevButton = this.shadowRoot?.getElementById(
       "prev",
     ) as HTMLButtonElement;
@@ -356,6 +373,9 @@ class ZineViewer extends LitElement {
 
   willUpdate(changedProperties: PropertyValues<this>) {
     super.willUpdate(changedProperties);
+    if (changedProperties.has("size")) {
+      this.syncSizePresetCss();
+    }
     const pages = loadZinePages(this.pagesAttr, this);
     const n = pages.length;
     if (changedProperties.has("pagesAttr") || n !== this.book.pageCount) {
@@ -392,6 +412,10 @@ class ZineViewer extends LitElement {
 
     // keyboard navigation is handled by the handler checking the property
     // no need to add/remove listener when property changes
+
+    if (changedProperties.has("size")) {
+      this.resizeContainer();
+    }
   }
 
   disconnectedCallback() {

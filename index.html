@@ -12,50 +12,96 @@
 <body>
 
   <script>
-    // define pages array for better readability
+    // local dev placeholders: data-URL SVGs avoid cross-origin / CORP blocks from third-party hosts
+    function escapeXml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    function ph(label, bg = "#e8e8e8", fg = "#333333") {
+      const safe = escapeXml(label);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900">` +
+        `<rect fill="${bg}" width="100%" height="100%"/>` +
+        `<text x="50%" y="50%" font-family="system-ui,sans-serif" font-size="40" fill="${fg}" ` +
+        `text-anchor="middle" dominant-baseline="middle">${safe}</text></svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
     const pages = [
-      {
-        img: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/FRONT.jpg",
-        backImg: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/1.jpg"
-      },
-      {
-        img: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/2.jpg",
-        backImg: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/3.jpg"
-      },
-      {
-        img: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/4.jpg",
-        backImg: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/5.jpg"
-      },
-      {
-        img: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/6.jpg",
-        backImg: "https://res.cloudinary.com/joelmturner/image/upload/v1736665494/zines/pick%20me%20ups/BACK.jpg"
-      }
+      { img: ph("cover", "#fdf6e3", "#586e75"), backImg: ph("1", "#eee8d5", "#586e75") },
+      { img: ph("2", "#e0f0ff", "#268bd2"), backImg: ph("3", "#ffe8e0", "#cb4b16") },
+      { img: ph("4", "#e8ffe8", "#859900"), backImg: ph("5", "#f0e8ff", "#6c71c4") },
+      { img: ph("6", "#fff0e8", "#d33682"), backImg: ph("back", "#eee", "#657b83") },
     ];
   </script>
 
-  <h2>Multiple Zines test</h2>
-  <div
-    style="width: 100%; height: 300px; margin: 0 auto; display: flex; gap: 10px; flex-direction: column; border: 1px solid red;">
-    <zine-viewer id="zine1"></zine-viewer>
-    <zine-viewer id="zine2"></zine-viewer>
+  <h2>Size preset examples</h2>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 16px; width: 100%; margin-bottom: 24px;">
+    <div>
+      <h3 style="margin: 0 0 8px;">default (`letter-8up`)</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-default"></zine-viewer>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin: 0 0 8px;">`letter-half`</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-letter-half" size="letter-half"></zine-viewer>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin: 0 0 8px;">`a5`</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-a5" size="a5"></zine-viewer>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin: 0 0 8px;">`a6`</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-a6" size="a6"></zine-viewer>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin: 0 0 8px;">`square`</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-square" size="square"></zine-viewer>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin: 0 0 8px;">`digest-6x9`</h3>
+      <div style="height: 260px; outline: 1px solid #ddd; padding: 8px;">
+        <zine-viewer id="zine-digest" size="digest-6x9"></zine-viewer>
+      </div>
+    </div>
   </div>
 
   <h2>Keyboard Navigation Focus Only</h2>
-  <div style="width: 300px; height: 300px; outline: 1px solid orange;">
-    <zine-viewer id="zine3" keyboard-navigation-focus-only></zine-viewer>
+  <div style="width: 320px; height: 280px; outline: 1px solid orange; padding: 8px; margin-bottom: 16px;">
+    <zine-viewer id="zine-focus-only" keyboard-navigation-focus-only size="a5"></zine-viewer>
   </div>
 
   <h2>Autoplay</h2>
-  <div style="width: 300px; height: 300px; outline: 1px solid orange;">
-    <zine-viewer id="zine4" autoplay autoplay-interval="5000"></zine-viewer>
+  <div style="width: 320px; height: 280px; outline: 1px solid orange; padding: 8px;">
+    <zine-viewer id="zine-autoplay" autoplay autoplay-interval="3000" size="a6"></zine-viewer>
   </div>
 
   <script>
     // set pages attribute programmatically for better readability
-    document.getElementById( "zine1" ).setAttribute( "pages", JSON.stringify( pages ) );
-    document.getElementById( "zine2" ).setAttribute( "pages", JSON.stringify( pages ) );
-    document.getElementById( "zine3" ).setAttribute( "pages", JSON.stringify( pages ) );
-    document.getElementById( "zine4" ).setAttribute( "pages", JSON.stringify( pages ) );
+    [
+      "zine-default",
+      "zine-letter-half",
+      "zine-a5",
+      "zine-a6",
+      "zine-square",
+      "zine-digest",
+      "zine-focus-only",
+      "zine-autoplay",
+    ].forEach((id) => {
+      document.getElementById(id).setAttribute("pages", JSON.stringify(pages));
+    });
   </script>
 
 

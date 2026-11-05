@@ -16,7 +16,24 @@ export const ZINE_PAGE_DIMENSION_DEFAULT: ZinePageDimensions = {
   pageHeight: LETTER_8UP.pageHeight,
 };
 
-const PRESETS: Readonly<Record<string, ZinePageDimensions>> = {
+/** canonical `size` attribute values. matching is case-insensitive at runtime. */
+export const ZINE_SIZE_PRESETS = [
+  "letter-8up",
+  "letter-half",
+  "a5",
+  "a6",
+  "square",
+  "digest-6x9",
+] as const;
+
+export type ZineSizePreset = (typeof ZINE_SIZE_PRESETS)[number];
+
+/** a preset id, or "" to leave sizing to :host --page-width / --page-height. */
+export type ZineSize = ZineSizePreset | "";
+
+const PRESET_IDS: ReadonlySet<string> = new Set(ZINE_SIZE_PRESETS);
+
+const PRESETS: Record<ZineSizePreset, ZinePageDimensions> = {
   "letter-8up": LETTER_8UP,
   // half-sheet 5.5×8.5 in — same 11:17 ratio as letter-8up
   "letter-half": LETTER_8UP,
@@ -26,6 +43,19 @@ const PRESETS: Readonly<Record<string, ZinePageDimensions>> = {
   "digest-6x9": { pageWidth: 240, pageHeight: 360 },
 };
 
+function isZineSizePreset(value: string): value is ZineSizePreset {
+  return PRESET_IDS.has(value);
+}
+
+function dimensionsForPresetId(
+  presetId: string | null | undefined,
+): ZinePageDimensions | null {
+  if (presetId == null || presetId.trim() === "") return null;
+  const key = presetId.trim().toLowerCase();
+  if (!isZineSizePreset(key)) return null;
+  return { ...PRESETS[key] };
+}
+
 /**
  * dimensions for a known preset id, or null when `size` should defer to :host CSS
  * (empty/whitespace or unknown id).
@@ -33,10 +63,7 @@ const PRESETS: Readonly<Record<string, ZinePageDimensions>> = {
 export function lookupZinePresetDimensions(
   presetId: string | null | undefined,
 ): ZinePageDimensions | null {
-  if (presetId == null || presetId.trim() === "") return null;
-  const key = presetId.trim().toLowerCase();
-  const found = PRESETS[key];
-  return found ? { ...found } : null;
+  return dimensionsForPresetId(presetId);
 }
 
 /**
@@ -45,10 +72,5 @@ export function lookupZinePresetDimensions(
 export function resolveZinePageDimensions(
   presetId: string | null | undefined,
 ): ZinePageDimensions {
-  if (presetId == null || presetId.trim() === "") {
-    return { ...ZINE_PAGE_DIMENSION_DEFAULT };
-  }
-  const key = presetId.trim().toLowerCase();
-  const found = PRESETS[key];
-  return found ? { ...found } : { ...ZINE_PAGE_DIMENSION_DEFAULT };
+  return dimensionsForPresetId(presetId) ?? { ...ZINE_PAGE_DIMENSION_DEFAULT };
 }

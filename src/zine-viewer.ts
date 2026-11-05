@@ -13,7 +13,7 @@ import {
   type BookSnapshot,
   type ZineStackDirection,
 } from "./zine-book";
-import { lookupZinePresetDimensions } from "./zine-sizes";
+import { lookupZinePresetDimensions, type ZineSize } from "./zine-sizes";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
@@ -34,7 +34,7 @@ class ZineViewer extends LitElement {
 
   /** named aspect preset; empty = use :host --page-width / --page-height only */
   @property({ type: String, attribute: "size" })
-  size = "";
+  size: ZineSize = "";
 
   static styles = css`
     :host {
@@ -463,6 +463,8 @@ class ZineViewer extends LitElement {
 }
 
 export { ZineViewer };
+export { ZINE_SIZE_PRESETS } from "./zine-sizes";
+export type { ZineSize, ZineSizePreset } from "./zine-sizes";
 declare global {
   interface HTMLElementTagNameMap {
     "zine-viewer": ZineViewer;

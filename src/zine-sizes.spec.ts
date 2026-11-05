@@ -3,6 +3,7 @@ import {
   lookupZinePresetDimensions,
   resolveZinePageDimensions,
   ZINE_PAGE_DIMENSION_DEFAULT,
+  ZINE_SIZE_PRESETS,
 } from "./zine-sizes.js";
 
 describe("lookupZinePresetDimensions", () => {
@@ -15,6 +16,12 @@ describe("lookupZinePresetDimensions", () => {
 
   it("returns null for unknown id", () => {
     expect(lookupZinePresetDimensions("nope")).toBeNull();
+  });
+
+  it("resolves every exported preset id", () => {
+    for (const id of ZINE_SIZE_PRESETS) {
+      expect(lookupZinePresetDimensions(id)).not.toBeNull();
+    }
   });
 
   it("matches known presets case-insensitively", () => {

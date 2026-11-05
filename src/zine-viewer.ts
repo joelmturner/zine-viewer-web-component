@@ -109,17 +109,17 @@ class ZineViewer extends LitElement {
       background: var(--page-bg-color);
     }
 
-    .front {
-      background-color: #fdf6e3;
+    .page > div.front {
+      background: #fdf6e3;
       overflow: hidden;
       & img {
         border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
       }
     }
 
-    .back {
+    .page > div.back {
       transform: rotateY(180deg);
-      background-color: #eee;
+      background: #eee;
       overflow: hidden;
       & img {
         border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
@@ -157,10 +157,11 @@ class ZineViewer extends LitElement {
     }
 
     img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      border: 1px solid #ccc;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      object-fit: cover;
     }
   `;
 

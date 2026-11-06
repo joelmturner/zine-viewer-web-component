@@ -3,6 +3,7 @@
  * DOM/CSS stays in the Lit component; this module owns parsing and stack math.
  */
 
+/** a leaf: front face and back face. the name stays so the public pages attribute is unchanged. */
 export interface ZinePage {
   imgSrc: string | null;
   backImgSrc: string | null;

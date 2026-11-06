@@ -14,11 +14,23 @@ import {
   type ZineStackDirection,
 } from "./zine-book";
 import { lookupZinePresetDimensions, type ZineSize } from "./zine-sizes";
+import {
+  leavesFromPortraitLetterSheet,
+  placeSheetCell,
+  type FaceBox,
+  type SheetCell,
+  type SheetFacePlacement,
+  type SheetPixels,
+} from "./zine-sheet";
 
 @customElement("zine-viewer")
 class ZineViewer extends LitElement {
   @property({ type: String, attribute: "pages" })
   pagesAttr = "";
+
+  /** portrait letter sheet url. when set, this fills every page and pages / children are ignored. */
+  @property({ type: String, attribute: "sheet" })
+  sheet = "";
 
   @property({ type: Boolean, attribute: "keyboard-navigation" })
   keyboardNavigation = true;
@@ -112,6 +124,7 @@ class ZineViewer extends LitElement {
     .page > div.front {
       background: #fdf6e3;
       overflow: hidden;
+      border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
       & img {
         border-radius: 0 var(--page-border-radius) var(--page-border-radius) 0;
       }
@@ -121,9 +134,16 @@ class ZineViewer extends LitElement {
       transform: rotateY(180deg);
       background: #eee;
       overflow: hidden;
+      border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
       & img {
         border-radius: var(--page-border-radius) 0 0 var(--page-border-radius);
       }
+    }
+
+    .page > div img.sheet-cell {
+      position: absolute;
+      border-radius: 0;
+      max-width: none;
     }
 
     #next,
@@ -167,6 +187,12 @@ class ZineViewer extends LitElement {
 
   @state()
   private book: BookSnapshot = createInitialSnapshot(0);
+
+  @state()
+  private sheetNatural: SheetPixels | null = null;
+
+  private loadedSheetUrl = "";
+  private sheetLoadToken = 0;
 
   @state()
   private stackDirection: ZineStackDirection = "initial";
@@ -372,14 +398,88 @@ class ZineViewer extends LitElement {
     }
   }
 
+  private sheetUrl(): string {
+    return this.sheet.trim();
+  }
+
+  private trackSheet(url: string) {
+    const token = ++this.sheetLoadToken;
+    if (!url) {
+      this.sheetNatural = null;
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      if (token !== this.sheetLoadToken) return;
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      if (width <= 0 || height <= 0) return;
+      this.sheetNatural = { width, height };
+    };
+    img.onerror = () => {
+      if (token !== this.sheetLoadToken) return;
+      this.sheetNatural = null;
+    };
+    img.src = url;
+  }
+
+  private faceBox(): FaceBox {
+    const style = getComputedStyle(this);
+    const width = parseInt(style.getPropertyValue("--page-width"), 10);
+    const height = parseInt(style.getPropertyValue("--page-height"), 10);
+    return {
+      width: Number.isFinite(width) && width > 0 ? width : 291,
+      height: Number.isFinite(height) && height > 0 ? height : 450,
+    };
+  }
+
+  private sheetCellStyle(placement: SheetFacePlacement, face: FaceBox): string {
+    const across = (value: number, base: number) => (value / base) * 100;
+    return [
+      `width:${across(placement.width, face.width)}%`,
+      `height:${across(placement.height, face.height)}%`,
+      `left:${across(placement.left, face.width)}%`,
+      `top:${across(placement.top, face.height)}%`,
+      `transform-origin:${placement.originX}% ${placement.originY}%`,
+      `transform:rotate(${placement.rotate}deg)`,
+    ].join(";");
+  }
+
+  private renderFace(src: string | null, cell?: SheetCell) {
+    if (!cell) {
+      return html`<img src="${src ?? ""}" />`;
+    }
+    const natural = this.sheetNatural;
+    if (!natural || !src) return html``;
+    const face = this.faceBox();
+    const placement = placeSheetCell(face, cell, natural);
+    if (!placement) return html``;
+    return html`<img
+      class="sheet-cell"
+      src="${src}"
+      style="${this.sheetCellStyle(placement, face)}"
+    />`;
+  }
+
   willUpdate(changedProperties: PropertyValues<this>) {
     super.willUpdate(changedProperties);
     if (changedProperties.has("size")) {
       this.syncSizePresetCss();
     }
-    const pages = loadZinePages(this.pagesAttr, this);
-    const n = pages.length;
-    if (changedProperties.has("pagesAttr") || n !== this.book.pageCount) {
+    const sheetUrl = this.sheetUrl();
+    if (sheetUrl !== this.loadedSheetUrl) {
+      this.loadedSheetUrl = sheetUrl;
+      this.sheetNatural = null;
+      this.trackSheet(sheetUrl);
+    }
+    const n = sheetUrl
+      ? leavesFromPortraitLetterSheet(sheetUrl).length
+      : loadZinePages(this.pagesAttr, this).length;
+    if (
+      changedProperties.has("pagesAttr") ||
+      changedProperties.has("sheet") ||
+      n !== this.book.pageCount
+    ) {
       this.book = createInitialSnapshot(n);
       this.stackDirection = "initial";
     }
@@ -420,6 +520,7 @@ class ZineViewer extends LitElement {
   }
 
   disconnectedCallback() {
+    this.sheetLoadToken++;
     super.disconnectedCallback();
     // cleanup keyboard event listener
     if (this.keyboardHandler) {
@@ -430,7 +531,22 @@ class ZineViewer extends LitElement {
   }
 
   render() {
-    const pages = loadZinePages(this.pagesAttr, this);
+    const sheetUrl = this.sheetUrl();
+    const pages = sheetUrl
+      ? leavesFromPortraitLetterSheet(sheetUrl).map(leaf => ({
+          index: leaf.index,
+          imgSrc: leaf.front.src,
+          backImgSrc: leaf.back.src,
+          frontCell: leaf.front.cell,
+          backCell: leaf.back.cell,
+        }))
+      : loadZinePages(this.pagesAttr, this).map(page => ({
+          index: page.index,
+          imgSrc: page.imgSrc,
+          backImgSrc: page.backImgSrc,
+          frontCell: undefined as SheetCell | undefined,
+          backCell: undefined as SheetCell | undefined,
+        }));
     const z = getZIndices(this.book, this.stackDirection);
 
     return html`
@@ -449,8 +565,12 @@ class ZineViewer extends LitElement {
                   data-page="${page.index + 1}"
                   style="z-index: ${z[page.index] ?? 0}"
                 >
-                  <div class="front"><img src="${page.imgSrc}" /></div>
-                  <div class="back"><img src="${page.backImgSrc}" /></div>
+                  <div class="front">
+                    ${this.renderFace(page.imgSrc, page.frontCell)}
+                  </div>
+                  <div class="back">
+                    ${this.renderFace(page.backImgSrc, page.backCell)}
+                  </div>
                 </div>`,
             )}
             <button id="prev" ?disabled=${!canFlipBackward(this.book)}></button>

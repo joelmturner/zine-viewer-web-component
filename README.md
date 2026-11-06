@@ -52,6 +52,16 @@ Add an element with the `img-src` and `back-img-src` attributes for each page of
 </zine-viewer>
 ```
 
+### Letter sheet (`sheet`)
+
+Pass one portrait letter image instead of a file per face. The image is a 2 by 4 grid. From the top, the pages sit at 8 and 7, then 1 and 6, then 2 and 5, then 3 and 4. Page 1 is the cover and page 8 is the back. The viewer turns each cell upright and pairs them into leaves: 1 with 2, 3 with 4, 5 with 6, 7 with 8.
+
+When `sheet` is set, child elements and the `pages` attribute are ignored. The page box stays the portrait `letter-8up` panel. A different `size` still changes the frame, and the cell fills that frame.
+
+```html
+<zine-viewer sheet="tea-friends.jpg"></zine-viewer>
+```
+
 ### Page size (`size` attribute and CSS variables)
 
 Each page uses `--page-width` and `--page-height` on the host (defaults match one panel of an **8-page US Letter** sheet: 4×2 landscape imposition, ~2.75×4.25 in, ratio 11:17).
